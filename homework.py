@@ -32,7 +32,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s %(name)s',
     handlers=[
-        logging.FileHandler(f'main.log', encoding='utf-8'),
+        logging.FileHandler('main.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)]
 )
 
@@ -41,9 +41,9 @@ def send_message(bot, message):
     """Функция отправки сообщения в чат."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, text=message)
-        logging.info(f'Сообщение успешно отправленно.')
+        logging.info('Сообщение успешно отправленно.')
     except Exception:
-        logging.error(f'Неудача при отправке сообщения.')
+        logging.error('Неудача при отправке сообщения.')
 
 
 def get_api_answer(current_timestamp):
@@ -82,7 +82,6 @@ def parse_status(homework):
     """Функция получает ответ сервера, проверяет наличие необходимых полей 
     и возвращает сообщение с именем и обновленным статусом.
     """
-
     if 'homework_name' and 'status' in homework:
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
@@ -106,7 +105,6 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-
     if check_tokens() is False:
         logging.critical('Отсутствуют обязательные переменные окружения.')
         raise ValueError('Нет переменных окружения.')
