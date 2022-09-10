@@ -79,11 +79,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Функция получает ответ сервера. 
-    -Проверяет наличие необходимых полей
-    -Проверяет корректность статуса
-    -Возвращает сообщение с именем и обновленным статусом.
-    """
+    """Функция проверяет ответ API и возвращает статус."""
     if 'homework_name' and 'status' in homework:
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
