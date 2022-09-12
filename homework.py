@@ -31,7 +31,6 @@ HOMEWORK_VERDICTS = {
 
 class ApiError(Exception):
     """Исключение при неправильно ответе API."""
-    pass
 
 
 if __name__ == '__main__':
