@@ -30,7 +30,7 @@ HOMEWORK_VERDICTS = {
 
 
 class ApiError(Exception):
-    """Исключение при неправильном ответе API."""
+    """Исключение при неправильно ответе API."""
     pass
 
 
