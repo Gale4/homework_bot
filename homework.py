@@ -35,7 +35,7 @@ class ApiError(Exception):
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s [%(levelname)s] %(message)s %(name)s',
         handlers=[
             logging.FileHandler('main.log', encoding='utf-8'),
@@ -62,8 +62,8 @@ def get_api_answer(current_timestamp: int) -> dict:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
 
     # Любой сбой при запросе к эндпоинту
-    except Exception:
-        raise ApiError('Ошибка API')
+    except Exception as error:
+        raise ApiError(f'Ошибка API: {error}')
 
     # Если сервер недоступен
     if response.status_code != HTTPStatus.OK:
@@ -102,7 +102,7 @@ def check_tokens() -> bool:
 
 def main():
     """Основная логика работы бота."""
-    if check_tokens() is not True:
+    if not check_tokens():
         logging.critical('Отсутствуют обязательные переменные окружения.')
         raise ValueError
 
@@ -112,6 +112,9 @@ def main():
     # Текущая временная метка
     current_timestamp = int(time.time())
 
+    # Переменная для сравнения старого и нового ответа
+    arch_verdict = ''
+
     while True:
         try:
             # Сделали запрос к API
@@ -120,11 +123,17 @@ def main():
             # Проверка ответа
             correct_response = check_response(api_response)
 
-            # Получить вердикт
-            verdict = parse_status(correct_response[0])
+            # Проверяю, что ДЗ обновилось
+            if correct_response:
+                # Получить вердикт
+                verdict = parse_status(correct_response[0])
 
-            # Отправка статуса в чат
-            send_message(bot, verdict)
+                # Если вердикт обновился - отправить статус в чат
+                if arch_verdict != verdict:
+                    send_message(bot, verdict)
+                    arch_verdict = verdict
+            else:
+                logging.debug('В ответе отсутствуют новые статусы.')
 
             # Переназначаем интервал на время предыдущей попытки
             current_timestamp = api_response.get('current_date')
@@ -132,9 +141,6 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
-
-        else:
-            sys.exit('Неизвестная ошибка.')
 
         finally:
             time.sleep(RETRY_TIME)
