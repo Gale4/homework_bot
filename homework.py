@@ -7,6 +7,7 @@ from http import HTTPStatus
 import requests
 import telegram
 import telegram.ext
+import exceptions
 from dotenv import load_dotenv
 from telegram.error import TelegramError
 
@@ -27,10 +28,6 @@ HOMEWORK_VERDICTS = {
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
-
-
-class ApiError(Exception):
-    """Исключение при неправильно ответе API."""
 
 
 if __name__ == '__main__':
@@ -63,11 +60,11 @@ def get_api_answer(current_timestamp: int) -> dict:
 
     # Любой сбой при запросе к эндпоинту
     except Exception as error:
-        raise ApiError(f'Ошибка API: {error}')
+        raise exceptions.ApiError(f'Ошибка API: {error}')
 
     # Если сервер недоступен
     if response.status_code != HTTPStatus.OK:
-        raise ResourceWarning(
+        raise exceptions.BadResponse(
             f'Эндпоинт недоступен. Код ответа API: {response.status_code}')
 
     return response.json()
@@ -86,7 +83,8 @@ def parse_status(homework: dict) -> str:
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
     else:
-        raise ApiError('В ответе API отсутсвуют необходимые ключи.')
+        raise exceptions.ApiKeyError(
+            'В ответе API отсутсвуют необходимые ключи.')
 
     if homework_status in HOMEWORK_VERDICTS:
         verdict = HOMEWORK_VERDICTS[homework_status]
@@ -115,18 +113,21 @@ def main():
     # Переменная для сравнения старого и нового ответа
     arch_verdict = ''
 
+    # Переменная для сравнения старой и новой ошибки
+    arch_error = ''
+
     while True:
         try:
             # Сделали запрос к API
             api_response = get_api_answer(current_timestamp)
 
-            # Проверка ответа
-            correct_response = check_response(api_response)
+            # Проверка ответа и получение списка ДЗ
+            homeworks_list = check_response(api_response)
 
             # Проверяю, что ДЗ обновилось
-            if correct_response:
+            if homeworks_list:
                 # Получить вердикт
-                verdict = parse_status(correct_response[0])
+                verdict = parse_status(homeworks_list[0])
 
                 # Если вердикт обновился - отправить статус в чат
                 if arch_verdict != verdict:
@@ -140,7 +141,11 @@ def main():
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            if arch_error != message:
+                send_message(bot, message)
+                arch_error = message
+            else:
+                logging.error(f'Ошибка при отправке сообщения {error}')
 
         finally:
             time.sleep(RETRY_TIME)
